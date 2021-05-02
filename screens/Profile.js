@@ -4,7 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Card, Title, Button } from 'react-native-paper';
 import { MaterialIcons, Feather, FontAwesome } from '@expo/vector-icons';
 
-const Profile = () => {
+const Profile = ({ route }) => {
+    const { item } = route.params
     return (
         <View style={{ flex: 1 }}>
             <LinearGradient
@@ -14,30 +15,30 @@ const Profile = () => {
             />
             {/* Profile Image */}
             <View style={{ alignItems: "center" }}>
-                <Image style={styles.profileImage} source={{ uri: "https://bit.ly/3nyKtaW" }} />
+                <Image style={styles.profileImage} source={{ uri: item.img }} />
             </View>
 
             {/* Personal Details */}
             <View style={{ alignItems: "center", marginTop: 20 }}>
-                <Title>Bikash Singh Bansal</Title>
-                <Text>Web Developer</Text>
+                <Title> {item.name} </Title>
+                <Text> {item.designation} </Text>
             </View>
 
             {/* Other Details */}
             <View style={{ padding: 4, marginTop: 20 }}>
                 {/* Email */}
-                <Card style={styles.card} onPress={() => Linking.openURL("mailto: bikashsingh@gmail.com")}>
+                <Card style={styles.card} onPress={() => Linking.openURL(`mailto:${item.email}`)}>
                     <View style={{ flexDirection: "row" }}>
                         <MaterialIcons name="email" size={24} color="#1e90ff" />
-                        <Text style={styles.text}>bikashsingh@gmail.com</Text>
+                        <Text style={styles.text}> {item.email} </Text>
                     </View>
                 </Card>
 
                 {/* Mobile */}
-                <Card style={styles.card} onPress={() => { Linking.openURL('tel:9117162463'); }}>
+                <Card style={styles.card} onPress={() => { Linking.openURL(`tel:${item.mobile}`); }}>
                     <View style={{ flexDirection: "row" }}>
                         <Feather name="phone" size={24} color="#1e90ff" />
-                        <Text style={styles.text}>+91-9117162463</Text>
+                        <Text style={styles.text}>+91-{item.mobile}</Text>
                     </View>
                 </Card>
 
@@ -45,18 +46,18 @@ const Profile = () => {
                 <Card style={styles.card}>
                     <View style={{ flexDirection: "row" }}>
                         <FontAwesome name="inr" size={24} color="#1e90ff" />
-                        <Text style={styles.text}>5LPA</Text>
+                        <Text style={styles.text}> {item.salary} </Text>
                     </View>
                 </Card>
 
 
                 {/* Buttons */}
                 <View style={{ flexDirection: 'row', justifyContent: "space-around", marginTop: 20 }}>
-                    <Button theme={buttonTheme} style={styles.button} icon="account-edit" mode="contained" onPress={() => setModalVisible(!modalVisible)}>
+                    <Button theme={buttonTheme} style={styles.button} icon="account-edit" mode="contained" onPress={() => console.log("pressed")}>
                         Edit
                     </Button>
 
-                    <Button theme={buttonTheme} style={styles.button} icon="delete" mode="contained" onPress={() => setModalVisible(!modalVisible)}>
+                    <Button theme={buttonTheme} style={styles.button} icon="delete" mode="contained" onPress={() => console.log("pressed")}>
                         Delete
                     </Button>
                 </View>

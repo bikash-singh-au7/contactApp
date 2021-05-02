@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Modal, LogBox } from 'react-native';
 import { Card, TextInput, Button } from 'react-native-paper'
+import * as ImagePicker from 'expo-image-picker';
+import { storage } from '../Config/FirebaseConfig';
+import uuid from 'react-native-uuid';
 
 const CreateContact = () => {
+
     // Create State
     const initialState = "";
     const [name, setName] = useState(initialState);
@@ -12,6 +16,123 @@ const CreateContact = () => {
     const [designation, setDesignation] = useState(initialState);
     const [img, setImg] = useState(initialState);
     const [modalVisible, setModalVisible] = useState(false);
+    const [imageURI, setImageURI] = useState(null);
+    const [IsStartUploading, setStartUploading] = useState(false);
+    const [progress, setProgress] = useState(0)
+
+
+    useEffect(() => {
+        LogBox.ignoreLogs(['Setting a timer']);
+    }, []);
+
+    // URI To Blob
+    const uriToBlob = (uri) => {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.onload = function () {
+                // return the blob
+                resolve(xhr.response);
+            };
+            xhr.onerror = function () {
+                // something went wrong
+                reject(new Error('uriToBlob failed'));
+            };
+            // this helps us get a blob
+            xhr.responseType = 'blob';
+            xhr.open('GET', uri, true);
+
+            xhr.send(null);
+        });
+    }
+
+    // Upload 
+    const uploadToFirebase = (blob) => {
+        return new Promise((resolve, reject) => {
+            const uniqueName = uuid.v4() + ".jpg";
+            const metadata = {
+                contentType: 'image/jpeg'
+            }
+            const uploadTask = storage.ref().child(`uploads/${uniqueName}`).put(blob, metadata);
+            uploadTask.on(
+                "state_changed",
+                snapshot => {
+                    const progress = Math.round(
+                        (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+                    );
+                    console.log(progress)
+                    setProgress(progress);
+                },
+                error => {
+                    console.log(error);
+                    reject(error)
+                },
+                () => {
+                    storage.ref("uploads")
+                        .child(uniqueName)
+                        .getDownloadURL()
+                        .then(url => {
+                            resolve(url);
+                        });
+                }
+            );
+
+        });
+
+
+    }
+
+    const pickImageFromCamera = async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+            alert('Sorry, we need camera roll permissions to make this work!');
+            return;
+        }
+        ImagePicker.launchCameraAsync({
+            mediaTypes: "Images",
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5
+        }).then((result) => {
+            if (!result.cancelled) {
+                // User picked an image
+                const { height, width, type, uri } = result;
+                setStartUploading(true);
+                setImageURI(uri);
+                return uriToBlob(uri);
+            }
+
+        }).then((blob) => {
+            return uploadToFirebase(blob);
+        }).then((snapshot) => {
+            setStartUploading(false);
+            console.log("File uploaded", snapshot);
+        }).catch((error) => {
+            throw error;
+        });
+    };
+
+
+
+    const pickImageFromGallery = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            alert('Sorry, we need camera roll permissions to make this work!');
+            return;
+        }
+
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
+
+        console.log(result);
+
+        if (!result.cancelled) {
+            setImageURI(result.uri);
+        }
+    };
 
     return (
         <View>
@@ -94,12 +215,12 @@ const CreateContact = () => {
             >
                 <View style={styles.modalView}>
                     <View style={{ flexDirection: "row", justifyContent: "space-around" }}>
-                        {/* Save Button */}
-                        <Button theme={buttonTheme} style={styles.button} icon="camera" mode="contained" onPress={() => setModalVisible(true)}>
+                        {/* Camera Button */}
+                        <Button theme={buttonTheme} style={styles.button} icon="camera" mode="contained" onPress={pickImageFromCamera}>
                             Camera
                         </Button>
-                        {/* Save Button */}
-                        <Button theme={buttonTheme} style={styles.button} icon="content-save" mode="contained" onPress={() => setModalVisible(true)}>
+                        {/* Gallery Button */}
+                        <Button theme={buttonTheme} style={styles.button} icon="content-save" mode="contained" onPress={pickImageFromGallery}>
                             Gallery
                         </Button>
                     </View>
